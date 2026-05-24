@@ -2,89 +2,130 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>野球スコアブック（ワンタップ記録版）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本格記録用スコアブック完全再現</title>
     <style>
-        body { font-family: sans-serif; padding: 10px; padding-bottom: 100px; background: #eee; }
-        table { border-collapse: collapse; background: #fff; width: 100%; table-layout: fixed; }
-        th, td { border: 1px solid #aaa; padding: 2px; text-align: center; }
+        body { font-family: 'MS Pゴシック', sans-serif; background: #fff; padding: 10px; margin: 0; }
         
-        /* ひし形エリア */
-        .diamond-container { position: relative; width: 55px; height: 55px; border: 1px solid #666; margin: 2px auto; }
+        table { border-collapse: collapse; border: 2px solid #000; table-layout: fixed; width: 100%; }
+        th, td { border: 1px solid #000; padding: 0; height: 85px; position: relative; }
         
-        /* 記録用ボックス共通 */
-        .input-box { position: absolute; font-size: 8px; text-align: center; border: 1px solid #ccc; }
-        .res-box { bottom: 2px; right: 2px; width: 40px; height: 18px; border-color: #d00; }
-        .base-box { width: 16px; height: 14px; }
-        .run-tr { top: 2px; right: 2px; } .run-tl { top: 2px; left: 2px; } .run-bl { bottom: 2px; left: 2px; }
-        
-        /* 下部クイックパネル */
-        .quick-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 90px;
-            background: #333; display: flex; flex-wrap: wrap; gap: 4px; padding: 5px; z-index: 1000;
+        /* 1. 左端：縦長カウント欄（画像再現） */
+        .count-select {
+            position: absolute; left: 0; top: 0; width: 12px; height: 100%;
+            font-size: 8px; line-height: 12px; text-align: center;
+            border: none; border-right: 1px solid #999; background: #fdfdfd;
+            appearance: none; cursor: pointer; color: #444; z-index: 10;
         }
-        .quick-btn { flex: 1 1 18%; height: 35px; font-size: 11px; cursor: pointer; border-radius: 4px; border: none; background: #fff; }
+
+        /* ◇ひし形（方向・得点・進塁記録用） */
+        .diamond-container {
+            position: absolute; left: 16px; top: 15px; width: 55px; height: 55px;
+            border: 1px solid #666; transform: rotate(0deg); z-index: 5;
+        }
+        
+        /* 中央：得点と終了線 */
+        .score-input {
+            position: absolute; top: 18px; left: 18px; width: 20px; height: 20px;
+            border: none; text-align: center; font-weight: bold; font-size: 14px;
+            background: rgba(255,255,255,0.7);
+        }
+
+        /* 四隅：方向ドット（画像のように◇の外側） */
+        .pos-num { position: absolute; font-size: 9px; cursor: pointer; color: blue; font-weight: bold; }
+        .pos-tl { top: -2px; left: -2px; } .pos-tr { top: -2px; right: -2px; }
+        .pos-bl { bottom: -2px; left: -2px; }
+
+        /* 辺：進塁記録（ここもプルダウン） */
+        .base-run-select {
+            position: absolute; width: 22px; height: 16px; font-size: 8px; padding: 0;
+            border: 1px solid #ccc; background: rgba(255,255,255,0.9);
+            appearance: none; text-align: center; cursor: pointer; z-index: 10;
+        }
+        .run-tr { top: 2px; right: 2px; }   /* 1→2 */
+        .run-tl { top: 2px; left: 2px; }    /* 2→3 */
+        .run-bl { bottom: 2px; left: 2px; }  /* 3→本 */
+
+        /* 2. 右下：打席結果（画像の6-4-3 DPを再現） */
+        .res-box {
+            position: absolute; bottom: 0px; right: 0px; width: 45px; height: 20px;
+            font-size: 8px; font-weight: bold; border: 1px solid #d00; text-align: center;
+            appearance: none; cursor: pointer; z-index: 20; color: #d00;
+        }
+        
     </style>
 </head>
 <body>
 
 <table>
     <script>
+        // 飛球方向と、結果（画像の併殺までカバー）の選択肢
+        const directions = ['・', '7', '8', '9', '6', '4', '5', '3', '2', '1'];
+        const results = ["", "中安", "左安", "6-3", "5-3", "6-4-3 DP", "8飛⌒", "6ゴ◡", "2-5", "空三振"];
+
         for(let i=1; i<=9; i++) {
-            document.write(`<tr><td style="width:20px; font-weight:bold;">${i}</td>`);
+            document.write(`<tr>`);
             for(let j=1; j<=9; j++) {
                 document.write(`<td>
+                    <select id="cnt-${i}-${j}" class="count-select save-data">
+                        <option value="">-</option><option value="⚪︎">⚪︎</option><option value="⚫︎">⚫︎</option><option value="－">－</option><option value="〰︎">〰︎</option>
+                    </select>
+                    
                     <div class="diamond-container">
-                        <input type="text" id="r-${i}-${j}" class="input-box res-box save-data" placeholder="結果">
-                        <input type="text" id="btr-${i}-${j}" class="input-box base-box run-tr save-data">
-                        <input type="text" id="btl-${i}-${j}" class="input-box base-box run-tl save-data">
-                        <input type="text" id="bbl-${i}-${j}" class="input-box base-box run-bl save-data">
+                        <div class="pos-num pos-tl" onclick="cycleNum(this)">・</div>
+                        <div class="pos-num pos-tr" onclick="cycleNum(this)">・</div>
+                        
+                        <input type="text" id="scr-${i}-${j}" class="score-input save-data" placeholder="R">
+                        
+                        <select id="runtr-${i}-${j}" class="base-run-select run-tr save-data">
+                            <option value="">-</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="S">S</option><option value="DS">DS</option><option value="6-4">6-4</option>
+                        </select>
+                        <select id="runtl-${i}-${j}" class="base-run-select run-tl save-data">
+                            <option value="">-</option><option value="1">1</option><option value="2">2</option><option value="S">S</option>
+                        </select>
+                        <select id="runbl-${i}-${j}" class="base-run-select run-bl save-data">
+                            <option value="">-</option><option value="WP">WP</option><option value="PB">PB</option>
+                        </select>
                     </div>
+
+                    <select id="res-${i}-${j}" class="res-box save-data">
+                        ${results.map(r => `<option value="${r}">${r}</option>`).join('')}
+                    </select>
                 </td>`);
             }
             document.write(`</tr>`);
         }
+
+        // 数字切り替え
+        function cycleNum(el) {
+            let idx = directions.indexOf(el.innerText);
+            el.innerText = directions[(idx + 1) % directions.length];
+            saveData(); // 自動保存
+        }
     </script>
 </table>
 
-<!-- クイックパネル -->
-<div class="quick-panel">
-    <button class="quick-btn" onclick="quickFill('6-3')">6-3</button>
-    <button class="quick-btn" onclick="quickFill('5-3')">5-3</button>
-    <button class="quick-btn" onclick="quickFill('6-4-3')">6-4-3</button>
-    <button class="quick-btn" onclick="quickFill('中安')">中安</button>
-    <button class="quick-btn" onclick="quickFill('左安')">左安</button>
-    <button class="quick-btn" onclick="quickFill('空三振')">空三振</button>
-    <button class="quick-btn" onclick="quickFill('四球')">四球</button>
-    <button class="quick-btn" onclick="quickFill('S')">盗塁</button>
-    <button class="quick-btn" onclick="quickFill('WP')">暴投</button>
-    <button class="quick-btn" onclick="quickFill('・')">・</button>
-</div>
-
 <script>
-    let lastClickedCell = null;
-    document.querySelectorAll('.save-data').forEach(el => {
-        el.addEventListener('focus', () => { lastClickedCell = el; });
-    });
-
-    function quickFill(val) {
-        if(lastClickedCell) {
-            lastClickedCell.value = val;
-            saveData();
-        }
-    }
-
+    // 自動保存（LocalStorage）
     const saveData = () => {
         const data = {};
-        document.querySelectorAll('.save-data').forEach(el => data[el.id] = el.value);
-        localStorage.setItem('scoreData', JSON.stringify(data));
+        document.querySelectorAll('.save-data, .pos-num').forEach(el => {
+            data[el.id || el.className + el.parentElement.cellIndex] = el.innerText || el.value;
+        });
+        localStorage.setItem('proScoreData', JSON.stringify(data));
     };
 
+    // 読み込み復元
     window.onload = () => {
-        const saved = JSON.parse(localStorage.getItem('scoreData') || '{}');
-        Object.keys(saved).forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.value = saved[id];
+        const saved = JSON.parse(localStorage.getItem('proScoreData') || '{}');
+        document.querySelectorAll('.save-data, .pos-num').forEach(el => {
+            const key = el.id || el.className + el.parentElement.cellIndex;
+            if(saved[key]) {
+                if(el.tagName === 'DIV') el.innerText = saved[key];
+                else el.value = saved[key];
+            }
         });
+        document.querySelectorAll('.save-data').forEach(el => el.addEventListener('change', saveData));
     };
 </script>
 </body>
