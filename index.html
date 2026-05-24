@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>野球スコアブック（高野連方式）</title>
+    <style>
+        body { font-family: "MS Pゴシック", sans-serif; padding: 10px; background: #fff; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h2 { font-size: 1.2em; border-bottom: 2px solid #333; padding-bottom: 5px; }
+        
+        table { border-collapse: collapse; width: 100%; border: 2px solid #000; table-layout: fixed; }
+        th, td { border: 1px solid #000; padding: 1px; text-align: center; }
+        
+        /* 選手情報の列 */
+        .col-info { width: 140px; font-size: 11px; }
+        .col-info input { border: none; border-bottom: 1px solid #ccc; margin: 1px; text-align: center; }
+        
+        /* 交代マーカー欄（イニング上部） */
+        .sub-marker { width: 100%; height: 12px; font-size: 8px; border: none; background: #f0f0f0; margin-bottom: 1px; }
+        
+        /* ひし形4分割エリア */
+        .diamond-container { 
+            display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; 
+            width: 50px; height: 50px; border: 1px solid #999; margin: 0 auto;
+        }
+        .diamond-container input { 
+            width: 100%; height: 100%; border: 0.5px solid #eee; 
+            font-size: 9px; text-align: center; padding: 0; box-sizing: border-box;
+        }
+        
+        .note-field { width: 100%; font-size: 10px; border: none; text-align: center; margin-top: 1px; }
+
+        @media print { .no-print { display: none; } }
+        .btn-area { margin-top: 15px; display: flex; gap: 10px; }
+        button { padding: 8px 16px; cursor: pointer; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <input type="text" id="gameInfo" placeholder="試合名・日付" class="save-data" style="width:100%; margin-bottom:10px; font-weight:bold; border:none; border-bottom:2px solid #333;">
+
+    <table>
+        <tr>
+            <th class="col-info">守/選手名/背</th>
+            <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
+        </tr>
+        <script>
+            for(let i=1; i<=9; i++) {
+                document.write(`<tr>
+                    <td class="col-info">
+                        <input type="text" id="pos${i}" placeholder="守" style="width:20px;" class="save-data">
+                        <input type="text" id="name${i}" placeholder="選手名" style="width:60px;" class="save-data">
+                        <input type="text" id="num${i}" placeholder="背" style="width:25px;" class="save-data">
+                    </td>`);
+                for(let j=1; j<=9; j++) {
+                    document.write(`<td>
+                        <input type="text" id="sub-${i}-${j}" class="sub-marker save-data" placeholder="交代/投手">
+                        <div class="diamond-container">
+                            <input type="text" id="s${i}-${j}-3b" class="save-data" placeholder="3">
+                            <input type="text" id="s${i}-${j}-2b" class="save-data" placeholder="2">
+                            <input type="text" id="${i}-${j}-hb" class="save-data" placeholder="本">
+                            <input type="text" id="s${i}-${j}-1b" class="save-data" placeholder="1">
+                        </div>
+                        <input type="text" id="s${i}-${j}-note" class="note-field save-data" placeholder="打席記録">
+                    </td>`);
+                }
+                document.write(`</tr>`);
+            }
+        </script>
+    </table>
+
+    <div class="btn-area no-print">
+        <button onclick="saveToFile()">現在のデータを保存(JSON)</button>
+        <button onclick="window.print()">印刷して仕上げる</button>
+        <button onclick="if(confirm('すべて消去しますか？')) { localStorage.clear(); location.reload(); }" style="color:red;">全消去</button>
+    </div>
+</div>
+
+<script>
+    // ブラウザのLocalStorageを使用してデータを自動保存
+    const saveData = () => {
+        const data = {};
+        document.querySelectorAll('.save-data').forEach(el => data[el.id] = el.value);
+        localStorage.setItem('proScoreFinalData', JSON.stringify(data));
+    };
+
+    // ページ読み込み時にデータを復元
+    window.onload = () => {
+        const saved = JSON.parse(localStorage.getItem('proScoreFinalData') || '{}');
+        Object.keys(saved).forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = saved[id];
+        });
+    };
+
+    // 入力があるたびに自動保存
+    document.querySelectorAll('.save-data').forEach(el => el.addEventListener('input', saveData));
+
+    // ファイルとしてダウンロード
+    function saveToFile() {
+        const data = localStorage.getItem('proScoreFinalData');
+        const blob = new Blob([data], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (document.getElementById('gameInfo').value || 'score') + '.json';
+        a.click();
+    }
+</script>
+</body>
+</html>
