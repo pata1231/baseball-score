@@ -15,7 +15,18 @@
         .col-info { width: 140px; font-size: 11px; }
         .col-info input { border: none; border-bottom: 1px solid #ccc; margin: 1px; text-align: center; }
         
-        /* 交代マーカー欄（イニング上部） */
+        /* カウントプルダウンのスタイル */
+        .count-select {
+            width: 100%;
+            height: 18px;
+            font-size: 10px;
+            padding: 0;
+            margin-bottom: 1px;
+            border: 1px solid #ddd;
+            display: block;
+        }
+
+        /* 交代マーカー欄 */
         .sub-marker { width: 100%; height: 12px; font-size: 8px; border: none; background: #f0f0f0; margin-bottom: 1px; }
         
         /* ひし形4分割エリア */
@@ -55,6 +66,14 @@
                     </td>`);
                 for(let j=1; j<=9; j++) {
                     document.write(`<td>
+                        <select id="count-${i}-${j}" class="count-select save-data">
+                            <option value="">-</option>
+                            <option value="⚪︎">⚪︎(ストライク)</option>
+                            <option value="⊖">⊖(空振り)</option>
+                            <option value="⚫︎">⚫︎(ボール)</option>
+                            <option value="－">－(ファール)</option>
+                            <option value="〰︎">〰︎(バント)</option>
+                        </select>
                         <input type="text" id="sub-${i}-${j}" class="sub-marker save-data" placeholder="交代/投手">
                         <div class="diamond-container">
                             <input type="text" id="s${i}-${j}-3b" class="save-data" placeholder="3">
